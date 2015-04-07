@@ -74,8 +74,8 @@ public class Matrix {
 		}
 		scanner.close();
 		war.Destroy();
-		System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-		war.Destroy();
+//		System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+//		war.Destroy();
 		System.out.println(war.totalCost);
 	}
 	
@@ -91,7 +91,7 @@ public class Matrix {
 		int forLpcnt = 0;
 		int dfscallcount = 0;
 		int sentinelFoundCount = 0;
-		CountConnected();
+//		CountConnected();
 		for(City city : zion)
 		{
 			int localCost = 100001;
@@ -119,8 +119,8 @@ public class Matrix {
 				if(foundSentinal == null) continue;
 				sentinelFoundCount++;
 				
-				System.out.println(foundSentinal.cell + " ---------- " + city.cell + " XX");
-				DestroyChain(foundSentinal);
+//				System.out.println(foundSentinal.cell + " ---------- " + city.cell + " XX");
+//				DestroyChain(foundSentinal);
 				
 				dfsStack.clear();
 				
@@ -230,7 +230,8 @@ public class Matrix {
 			if(currCity.hasSentinel)
 			{
 				PrintDFSInfo(ignoreCity, secondCity, currCity);
-				return currCity;
+				DestroyChain(currCity);
+//				return currCity;
 			}
 			
 			for(City nextAdj : currCity.adjacent)
@@ -248,7 +249,8 @@ public class Matrix {
 				if(nextAdj.hasSentinel)
 					{
 						PrintDFSInfo(ignoreCity, secondCity, nextAdj);
-						return nextAdj;
+						DestroyChain(nextAdj);
+//						return nextAdj;
 					}
 			}
 		}
