@@ -32,6 +32,7 @@ public class Matrix {
 	int totalCost = 0;
 	Queue<City> bfsQ;
 	ArrayList<City> sentinalCities;
+	int sentinels;
 	
 	public Matrix()
 	{
@@ -45,7 +46,7 @@ public class Matrix {
 		Scanner scanner = new Scanner(System.in);
 		
 		int cities = scanner.nextInt();
-		int sentinels = scanner.nextInt();
+		war.sentinels = scanner.nextInt();
 		int city1 = 0;
 		int city2 = 0;
 		int cost = 0;
@@ -67,15 +68,14 @@ public class Matrix {
 			war.zion[city2].weight[city1] = cost;
 		}
 		int sentinalIn = 0;
-		for(int i = 0; i < sentinels; i++)
+		for(int i = 0; i < war.sentinels; i++)
 		{
 			sentinalIn = scanner.nextInt();
 			war.zion[sentinalIn].hasSentinel = true;
 		}
 		scanner.close();
 		war.Destroy();
-//		System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-//		war.Destroy();
+
 		System.out.println(war.totalCost);
 	}
 	
@@ -91,47 +91,47 @@ public class Matrix {
 		int forLpcnt = 0;
 		int dfscallcount = 0;
 		int sentinelFoundCount = 0;
-//		CountConnected();
-		for(City city : zion)
+		while(CountConnected() != sentinels)
 		{
-			int localCost = 100001;
-			if(!city.hasSentinel)
-				continue;
-			//TODO: Unnecessarily costly
-			ResetProcessed();
-			dfsStack.clear();
-			forLpcnt++;
-			
-			for(City adjCity : city.adjacent)
+			for(City city : zion)
 			{
-				if(adjCity == null || adjCity.cell == city.cell) continue;
-				
-				dfsStack.clear();
-				adjCity.processed = true;
-				adjCity.parent = city;
-				dfsStack.push(adjCity);
-//				System.out.println(city.cell +" has adjacent "+  adjCity.cell + " with weight "+ adjCity.weight[city.cell]);
-				//we need to stop when we back track back to this city
-				city.parent = null;
-//				dfscallcount++;
-				
-				City foundSentinal = DFS(city);
-				if(foundSentinal == null) continue;
-				sentinelFoundCount++;
-				
-//				System.out.println(foundSentinal.cell + " ---------- " + city.cell + " XX");
-//				DestroyChain(foundSentinal);
+				if(!city.hasSentinel)
+					continue;
 				
 				dfsStack.clear();
 				
+				for(City adjCity : city.adjacent)
+				{
+					if(adjCity == null || adjCity.cell == city.cell) continue;
+					
+					dfsStack.clear();
+					adjCity.processed = true;
+					adjCity.parent = city;
+					dfsStack.push(adjCity);
+					//we need to stop when we back track back to this city
+					city.parent = null;
+					ResetProcessed();
+					City foundSentinal = null;
+	//				while((foundSentinal = DFS(city)) != null)
+	//				{
+						foundSentinal = DFS(city);
+						if(foundSentinal == null) continue;
+						sentinelFoundCount++;
+						
+//						System.out.println(foundSentinal.cell + " ---------- " + city.cell + " XX");
+						DestroyChain(foundSentinal);
+						dfsStack.clear();
+						dfsStack.push(adjCity);
+	//					ResetProcessed();
+	//				}
+				}
+				city.processed = true;
+				if(CountConnected() == sentinels) break;
 			}
-			city.processed = true;
 		}
-		System.out.println("inner for loop cnt = "+forLpcnt);
-		System.out.println("found sentinel = "+ sentinelFoundCount);
-		System.out.println("called dfs = " + dfscallcount);
-		System.out.println(totalCost);
-		System.out.println("totalAdditions "+totalAdditions);
+//		System.out.println("found sentinel = "+ sentinelFoundCount);
+//		System.out.println("called dfs = " + dfscallcount);
+//		System.out.println(totalCost);
 	
 	}
 	
@@ -141,7 +141,7 @@ public class Matrix {
 			city.discovered = false;
 	}
 	
-	void CountConnected()
+	int CountConnected()
 	{
 		bfsQ.add(zion[0]);
 		int connected = 0;
@@ -155,8 +155,8 @@ public class Matrix {
 			}
 		}
 		ResetDiscovered();
-		System.out.println("connected "+connected);
-		
+//		System.out.println("connected "+connected);
+		return connected;
 	}
 	
 	public void bfs(City root)
@@ -180,23 +180,26 @@ public class Matrix {
 	
 	void PrintDFSInfo(City start, City second, City adjacent)
 	{
-		if(adjacent != null)
-			System.out.println("DFS start with "+start.cell +" adjacent to " + second.cell + " found adjacent in " + adjacent.cell);
-		else
-			System.out.println("DFS start with "+start.cell +" adjacent to " + second.cell + " no adjacent found");
+//		if(start != null && second != null)
+//		{
+//			if(adjacent != null)
+//				System.out.println("DFS start with "+start.cell +" adjacent to " + second.cell + " found adjacent in " + adjacent.cell);
+//			else 
+//				System.out.println("DFS start with "+start.cell +" adjacent to " + second.cell + " no adjacent found");
+//		}
 	}
 	
 	void DestroyChain(City foundSentinal)
 	{
 		City lowCost = null;
 		int localCost = 1000001;
-		System.out.println("-----------------------------------");
+//		System.out.println("-----------------------------------");
 		
 		while(foundSentinal.parent != null)
 		{
-			System.out.println(foundSentinal.cell +" -----> "+  foundSentinal.parent.cell + " with weight "
-					+ foundSentinal.weight[foundSentinal.parent.cell]);
-		
+//			System.out.println(foundSentinal.cell +" -----> "+  foundSentinal.parent.cell + " with weight "
+//					+ foundSentinal.weight[foundSentinal.parent.cell]);
+//		
 			if(localCost > foundSentinal.weight[foundSentinal.parent.cell])
 			{
 				localCost = foundSentinal.weight[foundSentinal.parent.cell];
@@ -205,7 +208,7 @@ public class Matrix {
 			foundSentinal = foundSentinal.parent;
 		}
 		
-		System.out.println("localCost = " + localCost);
+//		System.out.println("localCost = " + localCost);
 		totalCost += localCost;
 		//cut off ties to the parent
 		lowCost.adjacent[lowCost.parent.cell] = null;
@@ -213,25 +216,29 @@ public class Matrix {
 		//cut off ties from parent to this cell
 		//Not really needed
 		lowCost.parent.adjacent[lowCost.cell] = null;
-		CountConnected();
-		System.out.println("-----------------------------------");
+//		CountConnected();
+//		System.out.println("-----------------------------------");
 	}
 	
 	//ignoreCity is the parent which we need to ignore for back edges
 	City DFS(City ignoreCity)
 	{
 		sentinalCities.clear();
-		City secondCity = dfsStack.peek();
+		City secondCity = null;
 		while(!dfsStack.isEmpty())
 		{
+			secondCity = dfsStack.peek();
 			City currCity = dfsStack.pop();
 			//if this city has a sentinel don't bother looking at it's adjacents
-			currCity.processed = true;
-			if(currCity.hasSentinel)
+			if(!currCity.processed)
 			{
-				PrintDFSInfo(ignoreCity, secondCity, currCity);
-				DestroyChain(currCity);
-//				return currCity;
+				currCity.processed = true;
+				if(currCity.hasSentinel)
+				{
+					PrintDFSInfo(ignoreCity, secondCity, currCity);
+	//				DestroyChain(currCity);
+					return currCity;
+				}
 			}
 			
 			for(City nextAdj : currCity.adjacent)
@@ -245,13 +252,19 @@ public class Matrix {
 					nextAdj.processed = true;
 					nextAdj.parent = currCity;
 					dfsStack.push(nextAdj);
-				}
-				if(nextAdj.hasSentinel)
+					if(nextAdj.hasSentinel)
 					{
 						PrintDFSInfo(ignoreCity, secondCity, nextAdj);
-						DestroyChain(nextAdj);
-//						return nextAdj;
+//						DestroyChain(nextAdj);
+						return nextAdj;
 					}
+				}
+//				if(nextAdj.hasSentinel)
+//				{
+//					PrintDFSInfo(ignoreCity, secondCity, nextAdj);
+////						DestroyChain(nextAdj);
+//					return nextAdj;
+//				}
 			}
 		}
 		PrintDFSInfo(ignoreCity, secondCity, null);
