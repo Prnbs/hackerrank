@@ -7,22 +7,33 @@ import java.util.Stack;
 
 class City{
 	int cell;
-	City[] adjacent;
-	int[] weight;
+	LinkedList<Edge> adjacent;
 	boolean hasSentinel;
 	boolean processed;
 	boolean discovered;
 	City parent;
 	
-	City(int _cell, int totalCities){
+	City(int _cell){
 		cell = _cell;
-		adjacent = new City[totalCities];
-		weight = new int[totalCities];
-		Arrays.fill(weight, -1);
+		adjacent = new LinkedList<Edge>();
 		hasSentinel = false;
 		processed = false;
 		parent = null;
 		discovered = false;
+	}
+}
+
+class Edge
+{
+	int weight;
+	City[] edgeEnds;
+	
+	Edge(City cityLeft, City cityRight, int _weight)
+	{
+		edgeEnds = new City[2];
+		edgeEnds[0] = cityLeft;
+		edgeEnds[1] = cityRight;
+		weight = _weight;
 	}
 }
 
@@ -54,18 +65,18 @@ public class Matrix {
 		
 		for(int i = 0; i < cities; i++)
 		{
-			war.zion[i] = new City(i, cities);
+			war.zion[i] = new City(i);
 		}
 		
 		for(int i = 0; i < cities-1; i++)
 		{
 			city1 = scanner.nextInt();
 			city2 = scanner.nextInt();
-			cost = scanner.nextInt();
-			war.zion[city1].adjacent[city2] = war.zion[city2];
-			war.zion[city1].weight[city2] = cost;
-			war.zion[city2].adjacent[city1] = war.zion[city1];
-			war.zion[city2].weight[city1] = cost;
+			cost  = scanner.nextInt();
+			
+			Edge edge = new Edge(war.zion[city1], war.zion[city2], cost);
+			war.zion[city1].adjacent.add(edge);
+			war.zion[city2].adjacent.add(edge);
 		}
 		int sentinalIn = 0;
 		for(int i = 0; i < war.sentinels; i++)
@@ -85,12 +96,14 @@ public class Matrix {
 			city.processed = false;
 	}
 	
+	City GetTheOtherCity(Edge theEdge, City start)
+	{
+		if(theEdge.edgeEnds[0].cell == start.cell) return theEdge.edgeEnds[1];
+		else return theEdge.edgeEnds[0];
+	}
+	
 	void Destroy()
 	{
-		int totalAdditions = 0;
-		int forLpcnt = 0;
-		int dfscallcount = 0;
-		int sentinelFoundCount = 0;
 		while(CountConnected() != sentinels)
 		{
 			for(City city : zion)
@@ -100,30 +113,26 @@ public class Matrix {
 				
 				dfsStack.clear();
 				
-				for(City adjCity : city.adjacent)
+				for(Edge edge : city.adjacent)
 				{
-					if(adjCity == null || adjCity.cell == city.cell) continue;
+//					if(adjCity == null || adjCity.cell == city.cell) continue;
 					
 					dfsStack.clear();
+					City adjCity = GetTheOtherCity(edge, city);
 					adjCity.processed = true;
 					adjCity.parent = city;
 					dfsStack.push(adjCity);
 					//we need to stop when we back track back to this city
 					city.parent = null;
 					ResetProcessed();
-					City foundSentinal = null;
-	//				while((foundSentinal = DFS(city)) != null)
-	//				{
-						foundSentinal = DFS(city);
-						if(foundSentinal == null) continue;
-						sentinelFoundCount++;
-						
-//						System.out.println(foundSentinal.cell + " ---------- " + city.cell + " XX");
-						DestroyChain(foundSentinal);
-						dfsStack.clear();
-						dfsStack.push(adjCity);
-	//					ResetProcessed();
-	//				}
+					Edge foundSentinal = null;
+					foundSentinal = DFS(city);
+					if(foundSentinal == null) continue;
+					
+//					System.out.println(foundSentinal.cell + " ---------- " + city.cell + " XX");
+					DestroyChain(foundSentinal);
+					dfsStack.clear();
+					dfsStack.push(adjCity);
 				}
 				city.processed = true;
 				if(CountConnected() == sentinels) break;
@@ -166,8 +175,9 @@ public class Matrix {
 		while(!bfsQ.isEmpty())
 		{
 			City currElem = bfsQ.remove();
-			for(City nextCell : currElem.adjacent)
+			for(Edge nextEdge : currElem.adjacent)
 			{
+				City nextCell = GetTheOtherCity(nextEdge, currElem);
 				if(nextCell == null) continue;
 				if(!nextCell.discovered)
 				{
@@ -189,7 +199,7 @@ public class Matrix {
 //		}
 	}
 	
-	void DestroyChain(City foundSentinal)
+	void DestroyChain(Edge foundSentinal)
 	{
 		City lowCost = null;
 		int localCost = 1000001;
@@ -197,12 +207,9 @@ public class Matrix {
 		
 		while(foundSentinal.parent != null)
 		{
-//			System.out.println(foundSentinal.cell +" -----> "+  foundSentinal.parent.cell + " with weight "
-//					+ foundSentinal.weight[foundSentinal.parent.cell]);
-//		
-			if(localCost > foundSentinal.weight[foundSentinal.parent.cell])
+			if(localCost > foundSentinal.weight)
 			{
-				localCost = foundSentinal.weight[foundSentinal.parent.cell];
+				localCost = foundSentinal.weight;
 				lowCost = foundSentinal;
 			}
 			foundSentinal = foundSentinal.parent;
@@ -221,7 +228,7 @@ public class Matrix {
 	}
 	
 	//ignoreCity is the parent which we need to ignore for back edges
-	City DFS(City ignoreCity)
+	Edge DFS(City ignoreCity)
 	{
 		sentinalCities.clear();
 		City secondCity = null;
@@ -241,8 +248,9 @@ public class Matrix {
 				}
 			}
 			
-			for(City nextAdj : currCity.adjacent)
+			for(Edge nextEdge : currCity.adjacent)
 			{
+				City nextAdj = GetTheOtherCity(nextEdge, currCity);
 				if(nextAdj == null) continue;
 				//ignore back edge from where we started the ith iteration of Destroy()
 				//also ignore back edges to the parent
@@ -256,15 +264,9 @@ public class Matrix {
 					{
 						PrintDFSInfo(ignoreCity, secondCity, nextAdj);
 //						DestroyChain(nextAdj);
-						return nextAdj;
+						return nextEdge;
 					}
 				}
-//				if(nextAdj.hasSentinel)
-//				{
-//					PrintDFSInfo(ignoreCity, secondCity, nextAdj);
-////						DestroyChain(nextAdj);
-//					return nextAdj;
-//				}
 			}
 		}
 		PrintDFSInfo(ignoreCity, secondCity, null);
