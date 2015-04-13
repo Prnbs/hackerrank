@@ -1,5 +1,7 @@
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Scanner;
@@ -27,6 +29,7 @@ class Edge
 	City[] edgeEnds;
 	Edge parent;
 	String ends;
+	boolean coloured;
 	
 	Edge(City cityLeft, City cityRight, int _weight)
 	{
@@ -36,6 +39,7 @@ class Edge
 		weight = _weight;
 		parent = null;
 		ends = cityLeft.cell + "---" + cityRight.cell;
+		coloured = false;
 	}
 }
 
@@ -87,15 +91,13 @@ public class Matrix {
 			war.zion[sentinalIn].hasSentinel = true;
 		}
 		scanner.close();
+		long start = System.nanoTime();
 		war.Destroy();
+		long end = System.nanoTime();
+		long totalTime = (end - start)/(1000*1000);
 
 		System.out.println(war.totalCost);
-	}
-	
-	void ResetProcessed()
-	{
-		for(City city : zion)
-			city.processed = false;
+		System.out.println(totalTime);
 	}
 	
 	City GetTheOtherCity(Edge theEdge, City start)
@@ -120,7 +122,6 @@ public class Matrix {
 				continue;
 			for(Edge edge : city.adjacent)
 			{
-				ResetProcessed();
 				city.processed = true;
 				dfsStack.clear();
 				//already cut off
@@ -128,11 +129,87 @@ public class Matrix {
 				//we need to stop when we back track back to this edge
 				edge.parent = null;
 				dfsStack.push(edge);
-				ArrayList<Edge> foundSentinal = null;
+				HashMap<String, Edge> foundSentinal = null;
 				foundSentinal = DFS(city);
-				DestroyChain(foundSentinal);
+				ColourEdges(foundSentinal.values());
+				break;
 			}
-			city.processed = true;
+			break;
+		}
+		FindAndDestroy();
+	}
+	
+	Edge GetNextColouredEdge(Edge cameFrom, City city)
+	{
+		for(Edge edge : city.adjacent)
+		{
+			if(edge.coloured && edge != cameFrom) return edge;
+		}
+		return null;
+	}
+	
+	void FindAndDestroy()
+	{
+		for(City city : zion)
+		{
+			if(!city.hasSentinel)
+				continue;
+			Edge lowEdge  = null;
+			for(Edge nextEdge : city.adjacent)
+			{
+				if(!nextEdge.coloured) continue;
+				if(nextEdge.edgeEnds[0] == null) continue;
+				lowEdge = RecursiveDFS(nextEdge, city, nextEdge);
+				if(lowEdge == null) continue;
+				DestroyRoad(lowEdge);
+			}
+		}
+	}
+	
+	void DestroyRoad(Edge lowEdge)
+	{
+		if(lowEdge != null && lowEdge.edgeEnds[0] != null)
+		{
+			lowEdge.edgeEnds[0] = null;
+			lowEdge.edgeEnds[1] = null;
+			numCuts++;
+			totalCost += lowEdge.weight;
+		}
+	}
+	
+	
+	Edge RecursiveDFS(Edge cameFromEdge, City cameFromCity, Edge lowestEdgeTillHere)
+	{
+		City cityHere = GetTheOtherCity(cameFromEdge, cameFromCity);
+		if(cityHere == null) return null;
+		if(cityHere.hasSentinel) 
+		{
+			return lowestEdgeTillHere;
+		}
+		for( Edge edge : cityHere.adjacent)
+		{
+			if(!edge.coloured) continue;
+			if(edge == cameFromEdge) continue;
+			if(edge.edgeEnds[0] == null) continue; //already cut this edge off
+			Edge lowestEdge = null;
+			lowestEdge = (lowestEdgeTillHere.weight > edge.weight)? edge : lowestEdgeTillHere;
+			Edge foundEdge =  RecursiveDFS(edge, cityHere, lowestEdge);
+			if(foundEdge == null) continue;
+			DestroyRoad(foundEdge);
+		}
+		return null;
+	}
+	
+	void ColourEdges(Collection<Edge> sentinalLeaves)
+	{
+		for(Edge edge : sentinalLeaves)
+		{
+			while(edge != null)
+			{
+				if(edge.coloured) break; 
+				edge.coloured = true;
+				edge = edge.parent;
+			}
 		}
 	}
 	
@@ -143,52 +220,10 @@ public class Matrix {
 		return null;
 	}
 	
-	void DestroyChain(ArrayList<Edge> sentinelLeaves)
-	{
-		Edge lowCost = null;
-		
-//		System.out.println("-----------------------------------");
-		boolean ignoreChain = false;
-		for(Edge foundSentinal : sentinelLeaves)
-		{
-			ignoreChain = false;
-			int localCost = 1000001;
-			while(foundSentinal != null)
-			{
-				if(foundSentinal.edgeEnds[0] == null)
-				{
-					//this edge has already been cut and needs to be ignored
-					ignoreChain = true;
-					break;
-				}
-				if(localCost > foundSentinal.weight)
-				{
-					localCost = foundSentinal.weight;
-					lowCost = foundSentinal;
-				}
-				foundSentinal = foundSentinal.parent;
-			}
-			//if we haven't cut this chain then now is the time to cut it
-			if(!ignoreChain)
-			{
-//				System.out.println("localCost = " + localCost);
-				totalCost += localCost;
-				//cut off ties to the parent
-//				System.out.println("Cutting " + lowCost.ends);
-				lowCost.edgeEnds[0] = null;
-				//cut off ties from parent to this cell
-				lowCost.edgeEnds[1] = null;
-//				System.out.println("-----------------------------------");
-			}
-		}
-		
-
-	}
-	
 	//ignoreCity is the parent which we need to ignore for back edges
-	ArrayList<Edge> DFS(City ignoreCity)
+	HashMap<String, Edge> DFS(City ignoreCity)
 	{
-		ArrayList<Edge> sentinelLeaves = new ArrayList<Edge>();
+		HashMap<String, Edge> sentinelLeaves = new HashMap<String, Edge>();
 		while(!dfsStack.isEmpty())
 		{
 			Edge currEdge  = dfsStack.pop();
@@ -201,7 +236,7 @@ public class Matrix {
 				if(currCity.hasSentinel)
 				{
 					dfsStack.push(currEdge);
-					sentinelLeaves.add(currEdge);
+					sentinelLeaves.put(currEdge.ends, currEdge);
 				}
 			}
 			
@@ -220,7 +255,7 @@ public class Matrix {
 					dfsStack.push(nextEdge);
 					if(nextAdj.hasSentinel)
 					{
-						sentinelLeaves.add(nextEdge);
+						sentinelLeaves.put(nextEdge.ends, nextEdge);
 					}
 				}
 			}
