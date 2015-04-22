@@ -5,13 +5,16 @@ import java.util.Scanner;
 class UnionSet
 {
 	int[] parent;
+	int[] cost;
 	int[] size;
 	int n;
+	int find1Cost, find2Cost;
 	
 	UnionSet(int numPlayers)
 	{
 		parent = new int[numPlayers+1];
 		size = new int[numPlayers+1];
+		cost = new int[numPlayers+1];
 		n = numPlayers;
 	}
 	
@@ -20,6 +23,7 @@ class UnionSet
 		for(int i = 0; i <= n; i++)
 		{
 			parent[i] = i;
+			cost[i] = 0;
 			size[i] = 1;
 		}
 	}
@@ -64,30 +68,34 @@ public class LanParty {
 		{
 			int node1 = scanner.nextInt();
 			int node2 = scanner.nextInt();
-			play.Union_Sets(uSet, node1, node2);
 			
-			//now iterate over all the games and see if any got enabled
-			for(int j = 1; j <= numGames; j++)
+			play.Union_Sets(uSet, node1, node2, i);
+		}
+		scanner.close();
+		
+		//now iterate over all the games and see if any got enabled
+		for(int j = 1; j <= numGames; j++)
+		{
+			uSet.find1Cost = 0;
+			//get first player of game j
+			int startPlayer = play.gamesAndTheirPlayers[j].get(0);
+			for(int l = 0; l < play.gamesAndTheirPlayers[j].size(); l++)
 			{
-				//get first player of game j
-				int startPlayer = play.gamesAndTheirPlayers[j].get(0);
-				for(int l = 0; l < play.gamesAndTheirPlayers[j].size(); l++)
+				int k = play.gamesAndTheirPlayers[j].get(l);
+				if(k == startPlayer || k == 0) continue; //ignore self and matched nodes
+				if(!play.Is_Connected(uSet, startPlayer, k))
 				{
-					int k = play.gamesAndTheirPlayers[j].get(l);
-					if(k == startPlayer || k == 0) continue; //ignore self and matched nodes
-					if(!play.Is_Connected(uSet, startPlayer, k))
-					{
-						break;
-					}
-					else
-					{
-						play.gameLiveAt[j] = i;
-						play.gamesAndTheirPlayers[j].set(l, 0); //no need to test for connectivity for this player
-					}
+					play.gameLiveAt[j] = -1;
+					break;
+				}
+				else
+				{
+					play.gameLiveAt[j] = uSet.find1Cost;
+					play.gamesAndTheirPlayers[j].set(l, 0); //no need to test for connectivity for this player
 				}
 			}
 		}
-		scanner.close();
+		
 		for(int i = 1; i <= numGames; i++)
 		{
 			if(play.totalPlayersForGame[i] == 1)
@@ -100,9 +108,17 @@ public class LanParty {
 	int Find(UnionSet s, int item)
 	{
 		if(s.parent[item] == item)
+		{
+			if(s.find1Cost < s.cost[item])
+				s.find1Cost = s.cost[item];
 			return item;
+		}
 		else
+		{
+			if(s.find1Cost < s.cost[item])
+				s.find1Cost = s.cost[item];
 			return Find(s, s.parent[item]);
+		}
 	}
 	
 	boolean Is_Connected(UnionSet s, int node1, int node2)
@@ -110,7 +126,7 @@ public class LanParty {
 		return (Find(s, node1) == Find(s, node2));
 	}
 	
-	void Union_Sets(UnionSet s, int node1, int node2)
+	void Union_Sets(UnionSet s, int node1, int node2, int cost)
 	{
 		int root1 = Find(s, node1);
 		int root2 = Find(s, node2);
@@ -119,11 +135,13 @@ public class LanParty {
 		{
 			s.size[root1] += s.size[root2];
 			s.parent[root2] = root1;
+			s.cost[root2] = cost;
 		}
 		else
 		{
 			s.size[root2] += s.size[root1];
 			s.parent[root1] = root2; 
+			s.cost[root1] = cost;
 		}
 	}
 }
