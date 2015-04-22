@@ -2,34 +2,38 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
-class UnionSet
-{
-	int[] parent;
-	int[] cost;
-	int[] size;
-	int n;
-	int find1Cost, find2Cost;
-	
-	UnionSet(int numPlayers)
-	{
-		parent = new int[numPlayers+1];
-		size = new int[numPlayers+1];
-		cost = new int[numPlayers+1];
-		n = numPlayers;
-	}
-	
-	void Set_Init()
-	{
-		for(int i = 0; i <= n; i++)
-		{
-			parent[i] = i;
-			cost[i] = 0;
-			size[i] = 1;
-		}
-	}
-}
+
 
 public class LanParty {
+	
+	class UnionSet
+	{
+		int[] parent;
+		int[] cost;
+		int[] size;
+		int n;
+		int find1Cost;
+		
+		UnionSet(int numPlayers)
+		{
+			parent = new int[numPlayers+1];
+			size = new int[numPlayers+1];
+			cost = new int[numPlayers+1];
+			n = numPlayers;
+		}
+		
+		void Set_Init()
+		{
+			for(int i = 0; i <= n; i++)
+			{
+				parent[i] = i;
+				cost[i] = 0;
+				size[i] = 1;
+			}
+		}
+	}
+	
+	
 	int[] totalPlayersForGame;
 	int[] gameLiveAt;
 	ArrayList<Integer> gamesAndTheirPlayers[];
@@ -48,7 +52,7 @@ public class LanParty {
 		
 		Arrays.fill(play.gameLiveAt, -1);
 		
-		UnionSet uSet = new UnionSet(numPlayers);
+		UnionSet uSet = new LanParty().new UnionSet(numPlayers);
 		uSet.Set_Init();
 		for(int i = 1; i <= numPlayers; i++)
 		{
