@@ -38,6 +38,8 @@ public class LanParty {
 	Player[] allPlayers;
 	int[] totalPlayersForGame;
 	int[] currPlayersForGame;
+	int[] thePlayers;
+	int[] gameLiveAt;
 	
 	
 	public static void main(String[] args) {
@@ -46,25 +48,69 @@ public class LanParty {
 		int numPlayers = scanner.nextInt();
 		int numGames = scanner.nextInt();
 		int numWires = scanner.nextInt();
+	
 		
-		play.allPlayers = new Player[numPlayers];
+		play.allPlayers = new Player[numPlayers+1];
 		play.totalPlayersForGame = new int[numGames+1];
 		play.currPlayersForGame  = new int[numGames+1];
+		play.thePlayers = new int[numPlayers+1];
+		play.gameLiveAt = new int[numGames+1];
+		
 		Arrays.fill(play.currPlayersForGame, 0);
+		Arrays.fill(play.gameLiveAt, -1);
 		
 		UnionSet uSet = new UnionSet(numPlayers);
 		uSet.Set_Init();
-		for(int i = 0; i < numPlayers; i++)
+		for(int i = 1; i <= numPlayers; i++)
 		{
-			int playerNum = scanner.nextInt();
-			play.allPlayers[i] = new Player(playerNum);
-			play.totalPlayersForGame[playerNum]++;
+			int gameNum = scanner.nextInt();
+			play.allPlayers[i] = new Player(gameNum);
+			play.totalPlayersForGame[gameNum]++;
+			play.thePlayers[i] = gameNum;
 		}
+		
+		
 		for(int i = 1; i <= numWires; i++)
 		{
-			play.Union_Sets(uSet, scanner.nextInt(), scanner.nextInt());
+			int node1 = scanner.nextInt();
+			int node2 = scanner.nextInt();
+			play.Union_Sets(uSet, node1, node2);
+			boolean connected = true;
+			int connectedAt = -1;
+			//now iterate over all the players but look for connections for node1
+			for(int j = 1; j <= numPlayers; j++)
+			{
+				//avoid self matches and make sure node1 and j are trying to play the same game 
+				if(node1 != j && play.thePlayers[node1] == play.thePlayers[j])
+				{
+					if(!play.Is_Connected(uSet, node1, j))
+					{
+						connected = false;
+						break;
+					}
+					else
+					{
+						//ok to override
+						connectedAt = i;
+					}
+				}
+			}
+			if(connected)
+			{
+				play.gameLiveAt[play.thePlayers[node1]] = connectedAt;
+			}
 		}
+		
+		
+		
 		scanner.close();
+		for(int i = 1; i <= numGames; i++)
+		{
+			if(play.totalPlayersForGame[i] == 1)
+				System.out.println(0);
+			else
+				System.out.println(play.gameLiveAt[i]);
+		}
 	}
 	
 	int Find(UnionSet s, int item)
@@ -94,8 +140,8 @@ public class LanParty {
 		{
 			s.size[root2] += s.size[root1];
 			s.parent[root1] = root2; 
-					
 		}
+		
+		
 	}
-
 }

@@ -91,13 +91,13 @@ public class Matrix {
 			war.zion[sentinalIn].hasSentinel = true;
 		}
 		scanner.close();
-		long start = System.nanoTime();
+	//	long start = System.nanoTime();
 		war.Destroy();
-		long end = System.nanoTime();
-		long totalTime = (end - start)/(1000*1000);
+	//	long end = System.nanoTime();
+	//	long totalTime = (end - start)/(1000*1000);
 
 		System.out.println(war.totalCost);
-		System.out.println(totalTime);
+	//	System.out.println(totalTime);
 	}
 	
 	City GetTheOtherCity(Edge theEdge, City start)
