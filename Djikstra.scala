@@ -1,7 +1,6 @@
 package Hackerrank.hackerrank
 
 import java.util.Scanner
-
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -13,26 +12,67 @@ class Node(cell: Int){
   var visited: Boolean = false
   var adjacent: ArrayBuffer[Edge] = ArrayBuffer[Edge]()
   val name = cell
-
-
-
 }
 
-class Edge(left: Node, right: Node, weight:  Int){
-  val value = left.name + " to " + right.name + " with " + weight
+class Edge(_left: Node, _right: Node, _weight:  Int){
+  val left = _left
+  val right = _right
+  val weight = _weight
 }
+
 
 class Djikstra {
   var graph = ArrayBuffer[Node]()
 
-  def runShortestPath(start: Int):List[Int] = {
-    var distances = Nil
+  def getTheOtherNode(edge: Edge, currNode: Int): Node = {
+    if(edge.left.name == currNode)
+      edge.right
+    else
+      edge.left
+  }
 
+  def runShortestPath(start: Int): ArrayBuffer[Int] = {
+    val graphSize = graph.size
+    val distances = ArrayBuffer[Int]()
+
+    //initialize distance list
+    for (i <- 0 to graphSize-1) {
+      distances  += Int.MaxValue
+    }
+
+    distances(start) = 0
+    var currNode = start
+//    println(s"Running while loop on $currNode")
+    while(!graph(currNode).visited){
+      graph(currNode).visited = true
+      // assign distances to all the adjacents of the
+      val size = graph(currNode).adjacent.size
+      for(j <- 0 to size-1){
+        val edge = graph(currNode).adjacent(j)
+        val nextNode = getTheOtherNode(edge, currNode)
+//        println("Edge weight " + edge.weight)
+        if(distances(nextNode.name) > distances(currNode) + edge.weight){
+          distances(nextNode.name) = distances(currNode) + edge.weight
+          nextNode.parent = graph(currNode)
+        }
+      }
+
+      //find the next node based on which not visited node has the shortest distance
+      var dist = Int.MaxValue
+      for (i <- 0 to graphSize-1){
+        val node = graph(i)
+        if(!node.visited && dist > distances(node.name)){
+          dist = distances(node.name)
+          currNode = node.name
+        }
+      }
+//      println(s"Next node to process $currNode")
+    }
     distances
   }
 }
 
-object Djikstra{
+object Solution{
   def main(args: Array[String]) {
     val scanner = new Scanner(System.in)
     val testCases = scanner.nextInt()
@@ -49,11 +89,17 @@ object Djikstra{
         val right = scanner.nextInt() - 1
         val weight = scanner.nextInt()
         val edge = new Edge(djikstra.graph(left), djikstra.graph(right), weight)
-        djikstra.graph(left).adjacent.append(edge)
-        djikstra.graph(right).adjacent.append(edge)
+        djikstra.graph(left).adjacent += edge
+        djikstra.graph(right).adjacent += edge
       }
-      val Start = scanner.nextInt()
+      val Start = scanner.nextInt() - 1
       val distances = djikstra.runShortestPath(Start)
+      for(i <- 0 to distances.size - 1){
+        if(distances(i) == Int.MaxValue)
+          print(-1 + " ")
+        else if(distances(i) != 0)
+          print(distances(i) + " ")
+      }
     }
   }
 }
