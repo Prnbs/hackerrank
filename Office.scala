@@ -3,6 +3,7 @@ package Hackerrank.hackerrank
 import java.util.Scanner
 import scala.collection.immutable.ListMap
 import scala.collection.mutable.ArrayBuffer
+import scala.util.control.Breaks._
 
 /**
  * Created by psinha4 on 8/25/2015.
@@ -29,12 +30,17 @@ class AllPaths{
   }
 
   def tryGetCostFromExitingPaths(edge: (Int, Int)): Int = {
-    for(path <- listOfPaths){
-      val cost = path.path.getOrElse(edge, Int.MinValue)
-      if(cost != Int.MinValue)
-        cost
+    var optimalCost = Int.MinValue
+    breakable {
+      for (path <- listOfPaths) {
+        val cost = path.path.getOrElse(edge, Int.MinValue)
+        if (cost == Int.MinValue){
+          optimalCost = path.cost
+          break()
+        } //the broken edge isn't part of the path
+      }
     }
-    Int.MinValue
+    optimalCost
   }
 }
 
@@ -85,6 +91,7 @@ class Office {
   }
 
   def runShortestPath(start: Int): ArrayBuffer[Int] = {
+    println("Running djikstra")
     val graphSize = graph.size
     val distances = ArrayBuffer[Int]()
 
@@ -156,10 +163,17 @@ object Office{
     val end = scanner.nextInt()
 
     val queries = scanner.nextInt()
+
+    //run shortest path before query
+    val dis = djikstra.runShortestPath(start)
+    println("----->" + dis(end))
+
     for(i <- 0 to queries-1){
       val brokenStart = scanner.nextInt()
       val brokenEnd = scanner.nextInt()
-      val existingCost = djikstra.allPaths.tryGetCostFromExitingPaths((brokenEnd, brokenStart))
+      var existingCost = Int.MinValue
+      existingCost = djikstra.allPaths.tryGetCostFromExitingPaths((brokenEnd, brokenStart))
+
       if(existingCost == Int.MinValue) {
         //break the edge
         val brokenEdge = djikstra.edgeMaps((brokenStart, brokenEnd))
@@ -172,7 +186,7 @@ object Office{
 
         //get the Path if it exists
         if (distances(end) != Int.MaxValue)
-          djikstra.allPaths.insertNewPath(djikstra.getPathForCurrentSetting(start, end, distances(end)))
+          djikstra.allPaths.insertNewPath(djikstra.getPathForCurrentSetting(end, start, distances(end)))
         println(distances(end))
       }
       else
