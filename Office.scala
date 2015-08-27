@@ -23,10 +23,15 @@ class Path(var path: Map[(Int, Int), Boolean], var cost: Int){}
 
 class AllPaths{
   var listOfPaths = Vector[Path]()
+  var shortestPath = Vector[Path]()
 
   def insertNewPath(path: Path): Unit = {
     listOfPaths = listOfPaths :+ path
     listOfPaths = listOfPaths.sortWith(_.cost <= _.cost)
+  }
+
+  def insertShortestPath(path: Path): Unit = {
+    shortestPath = listOfPaths :+ path
   }
 
   def tryGetCostFromExitingPaths(edge: (Int, Int)): Int = {
@@ -51,6 +56,7 @@ class Office {
   var edgeMaps = Map[(Int, Int), Edge]()
 
   var allPaths = new AllPaths()
+
 
 
   def getTheOtherNode(edge: Edge, currNode: Int): Node = {
@@ -88,6 +94,31 @@ class Office {
     path += ((end, start) -> true)
     path += ((start, end) -> true)
     new Path(path, cost)
+  }
+
+  /**
+   * Only called to store the edges which are in the optimal path
+   * @param stop
+   * @param start
+   * @param cost
+   * @return
+   */
+  def getPathForShortestRoute(stop: Int, start: Int, cost: Int): Vector[(Int, Int)] = {
+    var path = Vector[(Int, Int)]()
+    var end = stop
+    while(graph(end).parent.name != start){
+      if(end < graph(end).parent.name)
+       path = path :+ (end, graph(end).parent.name)
+      else
+        path = path :+ (graph(end).parent.name, end)
+      end = graph(end).parent.name
+    }
+    //now add the start itself
+    if(end < start)
+      path = path :+ (end, start)
+    else
+      path = path :+ (start, end)
+   path
   }
 
   def runShortestPath(start: Int): ArrayBuffer[Int] = {
@@ -166,8 +197,26 @@ object Office{
 
     //run shortest path before query
     val dis = djikstra.runShortestPath(start)
-//    println("----->" + dis(end))
+    //add the shortest path to allPaths
     djikstra.allPaths.insertNewPath(djikstra.getPathForCurrentSetting(end, start,  dis(end)))
+    //add the shortest path to the shortestPaths map
+    var shortestPath = djikstra.getPathForShortestRoute(end, start, dis(end))
+
+    for(path <- shortestPath){
+      val brokenEdge = djikstra.edgeMaps((path._1, path._2))
+      brokenEdge.broken = true
+//      println("Cutting " + path._1 +" , " + path._2)
+      val distances = djikstra.runShortestPath(start)
+      //connect the broken edge back
+      brokenEdge.broken = false
+
+//      println("Adding this to allPaths map")
+      if (distances(end) != Int.MaxValue)
+        djikstra.allPaths.insertNewPath(djikstra.getPathForCurrentSetting(end, start, distances(end)))
+
+      djikstra.resetVisited()
+    }
+
 
     for(i <- 0 to queries-1){
       val brokenStart = scanner.nextInt()
@@ -181,6 +230,7 @@ object Office{
         val brokenEdge = djikstra.edgeMaps((brokenStart, brokenEnd))
         brokenEdge.broken = true
 
+//        println("Had to call djikstra ---")
         val distances = djikstra.runShortestPath(start)
         //connect the broken edge back
         brokenEdge.broken = false
