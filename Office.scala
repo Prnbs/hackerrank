@@ -121,7 +121,7 @@ class Office {
    path
   }
 
-  def runShortestPath(start: Int): ArrayBuffer[Int] = {
+  def runShortestPath(start: Int, stop: Int): ArrayBuffer[Int] = {
 //    println("Running djikstra")
     val graphSize = graph.size
     val distances = ArrayBuffer[Int]()
@@ -133,33 +133,44 @@ class Office {
 
     distances(start) = 0
     var currNode = start
+    var foundend = false
+    var visitedNodes = Vector[Node]()
 //    println(s"Running while loop on $currNode")
-    while(!graph(currNode).visited){
-      graph(currNode).visited = true
-      // assign distances to all the adjacents of the
-      val size = graph(currNode).adjacent.size
-      for(j <- 0 to size-1){
-        val edge = graph(currNode).adjacent(j)
-        if(!edge.broken) {
-          val nextNode = getTheOtherNode(edge, currNode)
-          //        println("Edge weight " + edge.weight)
-          if (distances(nextNode.name) > distances(currNode) + edge.weight) {
-            distances(nextNode.name) = distances(currNode) + edge.weight
-            nextNode.parent = graph(currNode)
+    breakable {
+      while (!graph(currNode).visited) {
+        graph(currNode).visited = true
+        // assign distances to all the adjacents of the
+        val adjSize = graph(currNode).adjacent.size
+        breakable {
+          for (j <- 0 to adjSize - 1) {
+            val edge = graph(currNode).adjacent(j)
+            if (!edge.broken) {
+              val nextNode = getTheOtherNode(edge, currNode)
+              //        println("Edge weight " + edge.weight)
+              if (distances(nextNode.name) > distances(currNode) + edge.weight) {
+                distances(nextNode.name) = distances(currNode) + edge.weight
+                nextNode.parent = graph(currNode)
+                visitedNodes = visitedNodes :+ nextNode
+              }
+            }
           }
         }
-      }
 
-      //find the next node based on which not visited node has the shortest distance
-      var dist = Int.MaxValue
-      for (i <- 0 to graphSize-1){
-        val node = graph(i)
-        if(!node.visited && dist > distances(node.name)){
-          dist = distances(node.name)
-          currNode = node.name
+        //find the next node based on which not visited node has the shortest distance
+        var dist = Int.MaxValue
+        for (node <- visitedNodes) {
+          //        val node = graph(i)
+          if (!node.visited && dist > distances(node.name)) {
+            dist = distances(node.name)
+            currNode = node.name
+          }
         }
+        if (currNode == stop) {
+          foundend = true
+          break()
+        }
+        //      println(s"Next node to process $currNode")
       }
-//      println(s"Next node to process $currNode")
     }
     distances
   }
@@ -188,25 +199,31 @@ object Office{
       djikstra.edgeMaps += ((left, right) -> edge)
       djikstra.edgeMaps += ((right, left) -> edge)
     }
-
+    println("Finished creating graph")
     //get start and end
     val start = scanner.nextInt()
     val end = scanner.nextInt()
 
-    val queries = scanner.nextInt()
-
+    val t0 = System.currentTimeMillis()
     //run shortest path before query
-    val dis = djikstra.runShortestPath(start)
+    val dis = djikstra.runShortestPath(start, end)
+    val t1 = System.currentTimeMillis()
+    println("Finished 1st djikstra in " + (t1 - t0))
     //add the shortest path to allPaths
     djikstra.allPaths.insertNewPath(djikstra.getPathForCurrentSetting(end, start,  dis(end)))
+    println("Added to all paths")
+
     //add the shortest path to the shortestPaths map
-    var shortestPath = djikstra.getPathForShortestRoute(end, start, dis(end))
+    val shortestPath = djikstra.getPathForShortestRoute(end, start, dis(end))
+    println("Added to shortest path")
+    println("Number of edges in shortes path = " + shortestPath.size)
+    val queries = scanner.nextInt()
 
     for(path <- shortestPath){
       val brokenEdge = djikstra.edgeMaps((path._1, path._2))
       brokenEdge.broken = true
 //      println("Cutting " + path._1 +" , " + path._2)
-      val distances = djikstra.runShortestPath(start)
+      val distances = djikstra.runShortestPath(start, end)
       //connect the broken edge back
       brokenEdge.broken = false
 
@@ -216,8 +233,9 @@ object Office{
 
       djikstra.resetVisited()
     }
+    println("Finished looking at optimal path")
 
-
+    var djikstraCalled = 0
     for(i <- 0 to queries-1){
       val brokenStart = scanner.nextInt()
       val brokenEnd = scanner.nextInt()
@@ -226,12 +244,13 @@ object Office{
       existingCost = djikstra.allPaths.tryGetCostFromExitingPaths((brokenEnd, brokenStart))
 
       if(existingCost == Int.MinValue) {
+        djikstraCalled = djikstraCalled + 1
         //break the edge
         val brokenEdge = djikstra.edgeMaps((brokenStart, brokenEnd))
         brokenEdge.broken = true
 
-//        println("Had to call djikstra ---")
-        val distances = djikstra.runShortestPath(start)
+        println("Had to call djikstra ---")
+        val distances = djikstra.runShortestPath(start, end)
         //connect the broken edge back
         brokenEdge.broken = false
 
@@ -244,5 +263,6 @@ object Office{
       else
         println(existingCost)
     }
+    println(s"Extra djikstra calls $djikstraCalled")
   }
 }
