@@ -80,8 +80,8 @@ class Office {
     var path = Map[(Int, Int), Boolean]()
     var end = stop
     while(graph(end).parent.name != start){
-      path += ((end, start) -> true)
-      path += ((start, end) -> true)
+      path += ((end, graph(end).parent.name) -> true)
+      path += ((graph(end).parent.name, end) -> true)
       end = graph(end).parent.name
     }
     //now add the start itself
@@ -91,7 +91,7 @@ class Office {
   }
 
   def runShortestPath(start: Int): ArrayBuffer[Int] = {
-    println("Running djikstra")
+//    println("Running djikstra")
     val graphSize = graph.size
     val distances = ArrayBuffer[Int]()
 
@@ -166,12 +166,14 @@ object Office{
 
     //run shortest path before query
     val dis = djikstra.runShortestPath(start)
-    println("----->" + dis(end))
+//    println("----->" + dis(end))
+    djikstra.allPaths.insertNewPath(djikstra.getPathForCurrentSetting(end, start,  dis(end)))
 
     for(i <- 0 to queries-1){
       val brokenStart = scanner.nextInt()
       val brokenEnd = scanner.nextInt()
       var existingCost = Int.MinValue
+      djikstra.resetVisited()
       existingCost = djikstra.allPaths.tryGetCostFromExitingPaths((brokenEnd, brokenStart))
 
       if(existingCost == Int.MinValue) {
@@ -182,7 +184,7 @@ object Office{
         val distances = djikstra.runShortestPath(start)
         //connect the broken edge back
         brokenEdge.broken = false
-        djikstra.resetVisited()
+
 
         //get the Path if it exists
         if (distances(end) != Int.MaxValue)
